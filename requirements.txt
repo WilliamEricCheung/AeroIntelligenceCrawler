@@ -1,0 +1,6 @@
+scrapy
+selenium
+newspaper3k
+webdriver_manager
+mongo-connector
+elasticsearch2_doc_manager

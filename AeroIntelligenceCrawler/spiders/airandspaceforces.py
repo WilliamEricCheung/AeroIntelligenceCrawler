@@ -1,10 +1,36 @@
+from typing import Any
 import scrapy
-
+from selenium import webdriver
+from newspaper import Article
+from webdriver_manager.chrome import ChromeDriverManager
+import datetime
 
 class AirandspaceforcesSpider(scrapy.Spider):
     name = "airandspaceforces"
     allowed_domains = ["airandspaceforces.com"]
-    start_urls = ["https://airandspaceforces.com"]
+    start_urls = ["https://airandspaceforces.com/news"]
+
+    def __init__(self):
+        options = webdriver.ChromeOptions()
+        options.add_argument("--headless")
+        self.driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
 
     def parse(self, response):
-        pass
+        self.driver.get(response.url)
+        for news_link in self.driver.find_elements_by_xpath('//a[contains(@href, "/news/")]'):
+            news_url = news_link.get_attribute('href')
+            yield scrapy.Request(news_url, callback=self.parse_article)
+
+    def parse_article(self, response):
+        article = Article(response.url)
+        article.download()
+        article.parse()
+        if article.publish_date and article.publish_date > datetime.datetime.now() - datetime.timedelta(days=7):
+            yield {
+                'title': article.title,
+                'text': article.text,
+                'date': article.publish_date
+            }
+
+    def closed(self, reason):
+        self.driver.close()
