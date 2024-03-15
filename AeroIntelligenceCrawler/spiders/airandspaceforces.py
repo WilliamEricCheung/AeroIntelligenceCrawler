@@ -1,6 +1,7 @@
 from typing import Any
 import scrapy
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
 from newspaper import Article
 from webdriver_manager.chrome import ChromeDriverManager
 import datetime
@@ -11,9 +12,10 @@ class AirandspaceforcesSpider(scrapy.Spider):
     start_urls = ["https://airandspaceforces.com/news"]
 
     def __init__(self):
+        service = Service(ChromeDriverManager().install())
         options = webdriver.ChromeOptions()
         options.add_argument("--headless")
-        self.driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
+        self.driver = webdriver.Chrome(service=service, options=options)
 
     def parse(self, response):
         self.driver.get(response.url)
