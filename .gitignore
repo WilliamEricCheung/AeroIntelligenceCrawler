@@ -1,0 +1,11 @@
+*.log
+*.out
+*.xml
+*.pyc
+.idea/*
+.idea
+log/
+logs/
+config.py
+record_time.json
+!.gitignore
