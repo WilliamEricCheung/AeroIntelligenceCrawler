@@ -70,3 +70,31 @@ source crawler_py310/bin/activate
 sudo apt-get install libxml2-devel libxslt-devel
 pip install --upgrade pip
 pip install -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
+
+
+echo "
+**************************************************
+   Step 3: ElasticSearch
+**************************************************
+"
+docker pull elasticsearch:latest
+# create a network for elasticsearch
+docker network create es-net
+# create a directory to store elasticsearch data
+mkdir es_mnt
+# start temp elasticsearch
+docker run -d --name es_temp  \
+-e "discovery.type=single-node" \
+-e "ES_JAVA_OPTS=-Xms5120m -Xmx5120m"  \
+-p 9200:9200  -p 9300:9300  elasticsearch:latest
+# copy data from temp elasticsearch to host
+docker cp -a es_temp:/usr/share/elasticsearch/config /root/project/es_mnt
+docker cp -a es_temp:/usr/share/elasticsearch/data /root/project/es_mnt
+docker cp -a es_temp:/usr/share/elasticsearch/plugins /root/project/es_mnt
+docker cp -a es_temp:/usr/share/elasticsearch/logs /root/project/es_mnt
+# change the owner of the directory
+chmod -R 777 /root/project/es_mnt
+# stop and remove temp elasticsearch
+docker rm -f  es_temp
+# start elasticsearch
+docker run -d --name es -p 9210:9200 -p 9310:9300 -e "discovery.type=single-node" -e "ES_JAVA_OPTS=-Xms5120m -Xmx5120m" -v /root/project/es_mnt/config:/usr/share/elasticsearch/config -v /root/project/es_mnt/data:/usr/share/elasticsearch/data -v /root/project/es_mnt/plugins:/usr/share/elasticsearch/plugins -v /root/project/es_mnt/logs:/usr/share/elasticsearch/logs --network es-net --restart=always elasticsearch:latest

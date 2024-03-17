@@ -12,3 +12,9 @@ class AerointelligencecrawlerPipeline:
     def process_item(self, item, spider):
         print(item)
         return item
+
+class ElasticsearchPipeline(object):
+    #将数据写入到es中
+    def process_item(self,item,spider):
+        item.save_to_es()
+        return item
