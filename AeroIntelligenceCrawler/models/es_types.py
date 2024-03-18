@@ -2,13 +2,13 @@ from elasticsearch_dsl import Document, Date, Completion, Keyword, Text
 from elasticsearch_dsl.connections import connections
 from datetime import datetime
 
-connections.create_connection(hosts="localhost:9210")
+connections.create_connection(hosts="https://localhost:9210")
 
 
 class Article(Document):
     title_en = Text(analyzer='snowball', fields={'raw': Keyword()})
     text_en = Text(analyzer='snowball')
-    create_date = Date()
+    publish_date = Date()
     url = Keyword()
     published_from = Keyword()
     insert_at = Date()

@@ -6,6 +6,7 @@
 
 # useful for handling different item types with a single interface
 from itemadapter import ItemAdapter
+from .models.es_types import Article
 
 
 class AerointelligencecrawlerPipeline:
@@ -16,5 +17,6 @@ class AerointelligencecrawlerPipeline:
 class ElasticsearchPipeline(object):
     #将数据写入到es中
     def process_item(self,item,spider):
-        item.save_to_es()
+        if isinstance(item, Article):
+            item.save_to_es()   
         return item

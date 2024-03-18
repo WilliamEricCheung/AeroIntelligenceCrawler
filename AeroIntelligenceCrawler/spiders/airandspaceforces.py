@@ -9,11 +9,14 @@ import os
 import re
 import datetime
 
+from AeroIntelligenceCrawler.items import ArticleItem
+
 class AirandspaceforcesSpider(scrapy.Spider):
     name = "airandspaceforces"
     allowed_domains = ["airandspaceforces.com"]
     start_urls = ["https://airandspaceforces.com/category/air/"]
     data_path = "./AeroIntelligenceCrawler/data/"
+    day_range = 2
 
     def __init__(self):
         service = Service(ChromeDriverManager().install())
@@ -28,28 +31,24 @@ class AirandspaceforcesSpider(scrapy.Spider):
         with open(f"{self.data_path}{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.txt", "a") as file:
             for news in self.driver.find_elements(By.XPATH, '//article//div//div'):
                 news_text = news.text.replace("COMMENTARY", "").strip()
-                print("****news_text: ", news_text)
                 match = re.search(r"\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+\d{4}\b", news_text)
                 news_date = match.group(0) if match else None
-                print("****news_date: ", news_date)
                 if news_date is None:
                     continue
-                # news_date_str = news_date.split("|")[0].strip()
-                # print("news_date_str: ", news_date_str)
                 news_date_obj = datetime.datetime.strptime(news_date, "%B %d, %Y")
-                if news_date_obj.date() >= (datetime.datetime.now() - datetime.timedelta(days=2)).date():
+                # 因为网站上的新闻发布时间已排序，所以只需判断最新的新闻是否在day_range内，不在则退出
+                if news_date_obj.date() >= (datetime.datetime.now() - datetime.timedelta(days=self.day_range)).date():
                     news_url = news.find_element(By.XPATH, './h2/a').get_attribute("href")
-                    print("news_url: ", news_url)
                     file.write(news_url + "\n")
                     yield scrapy.Request(news_url, callback=self.parse_article)
+                else:
+                    continue
 
     def parse_article(self, response):
         article = Article(response.url)
         article.download()
         article.parse()
-        print("article.publish_date: ", article.publish_date)
-        print("article.title: ", article.title)
-        print("article.text: ", article.text)
+        yield ArticleItem(title_en=article.title, text_en=article.text, publish_date=article.publish_date)
         yield {
             'title': article.title,
             'text': article.text,
