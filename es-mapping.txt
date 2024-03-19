@@ -1,0 +1,115 @@
+PUT /article
+{
+    "mappings":{
+      "properties" : {
+        // 新闻URL
+        "url" : {
+          "type" : "keyword"
+        },
+        // 新闻来源
+        "source" : {
+          "type" : "keyword"
+        },
+        // 新闻发布时间
+        "publish_date" : {
+          "type" : "date",
+          "format" : "epoch_second"
+        },
+        // 新闻标题英文
+        "title_en" : {
+          "type" : "text",
+          "fields" : {
+            "keyword" : {
+              "type" : "keyword",
+              "ignore_above" : 256
+            }
+          },
+          "analyzer" : "ik_max_word",
+          "search_analyzer" : "ik_smart"
+        },
+        // 新闻标题中文
+        "title_cn" : {
+          "type" : "text",
+          "fields" : {
+            "keyword" : {
+              "type" : "keyword",
+              "ignore_above" : 256
+            }
+          },
+          "analyzer" : "ik_max_word",
+          "search_analyzer" : "ik_smart"
+        },
+        // 新闻主题文本内容（里面记得给图片和表格留占位符）
+        "content_en" : {
+          "type" : "text",
+          "analyzer" : "ik_max_word",
+          "search_analyzer" : "ik_smart"
+        },
+        // 新闻主题文本内容（里面记得给图片和表格留占位符）
+        "content_cn" : {
+          "type" : "text",
+          "analyzer" : "ik_max_word",
+          "search_analyzer" : "ik_smart"
+        },
+        // 图片
+        "images": {
+        "type": "nested",
+        "properties": {
+          "image_placeholder": { "type": "keyword" },
+          "image_url": { "type": "keyword" },
+          "image_description": { "type": "text" }
+        }
+      },
+      "tables": {
+        "type": "nested",
+        "properties": {
+          "table_placeholder": { "type": "keyword" },
+          "table_content": {
+            "type": "object",
+            "enabled": false  // 如果表格内容不需要被索引，可以设置为false
+          },
+          "table_description": { "type": "text" }
+        }
+      },
+      "tags": {
+        "type": "keyword"
+      },
+        "read_num" : {
+          "type" : "integer"
+        },
+      }
+    }
+  }
+
+
+{
+  "title": "环保新举措：城市绿化的重要性",
+  "content": "近日，市政府宣布了一系列环保新举措，旨在提高城市绿化水平。专家指出，城市绿化对提升城市生态系统具有重要意义。{{image1}}这些措施包括种植更多的树木和创建新的公园区域。{{image2}}下表展示了这些新举措的主要内容和预期效果。{{table1}}",
+  "publish_date": "2024-03-20T08:00:00Z",
+  "tags": ["环境", "可持续发展"],
+  "images": [
+    {
+      "image_placeholder": "{{image1}}",
+      "image_url": "http://example.com/environment1.jpg",
+      "image_description": "城市公园绿地示例"
+    },
+    {
+      "image_placeholder": "{{image2}}",
+      "image_url": "http://example.com/environment2.jpg",
+      "image_description": "新种植的树木"
+    }
+  ],
+  "tables": [
+    {
+      "table_placeholder": "{{table1}}",
+      "table_content": {
+        "header": ["举措", "预期效果"],
+        "rows": [
+          ["增加公园面积", "提高空气质量和休闲空间"],
+          ["城市绿化", "增加生物多样性，改善城市景观"]
+        ]
+      },
+      "table_description": "环保新举措摘要"
+    }
+  ]
+}
