@@ -11,7 +11,7 @@ from .models.es_types import Article
 
 class AerointelligencecrawlerPipeline:
     def process_item(self, item, spider):
-        print(item)
+        # print(item)
         return item
 
 class ElasticsearchPipeline(object):
