@@ -119,7 +119,15 @@ echo "
 **************************************************
 "
 docker pull kibana:8.12.2
+# start temp kibana
+docker run --name kibana_temp -d -p 5601:5601 kibana:8.12.2
+# copy kibana configuration from temp kibana to host
+docker cp kibana_temp:/usr/share/kibana/config $WORK_DIR/kibana/
+chmod -R 777 $WORK_DIR/kibana
+docker rm -f  kibana_temp
+# change kibana configuration
+sed -i 's/http:\/\/elasticsearch:9200/http:\/\/es:9200/g' $WORK_DIR/kibana/kibana.yml
 
 docker run -d --name kibana -p 5601:5601 \
--e "ELASTICSEARCH_HOSTS=http://es:9200" \
---network es-net kibana:8.12.2
+-v $WORK_DIR/kibana/kibana.yml:/usr/share/kibana/config/kibana.yml \
+--network es-net --restart always kibana:8.12.2
