@@ -6,6 +6,7 @@
 .idea
 log/
 logs/
+AeroIntelligenceCrawler/data/*
 config.py
 record_time.json
 !.gitignore

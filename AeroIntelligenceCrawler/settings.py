@@ -64,6 +64,7 @@ ROBOTSTXT_OBEY = True
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
    "AeroIntelligenceCrawler.pipelines.AerointelligencecrawlerPipeline": 300,
+   'AeroIntelligenceCrawler.pipelines.ElasticsearchPipeline': 1
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)
