@@ -2,6 +2,10 @@
 
 # usage: echo [root-password] | sudo -S ./install-prerequisite.sh
 
+# set work directory
+# example: WORK_DIR="/mnt/d/Project/AeroIntelligenceCrawler"
+WORK_DIR="$(pwd)"
+
 # install browswer driver (chrome for ubuntu)
 echo "
 ****************************
@@ -77,24 +81,45 @@ echo "
    Step 3: ElasticSearch
 **************************************************
 "
-docker pull elasticsearch:latest
+docker pull elasticsearch:8.12.2
 # create a network for elasticsearch
 docker network create es-net
 # create a directory to store elasticsearch data
+cd $WORK_DIR
 mkdir es_mnt
 # start temp elasticsearch
 docker run -d --name es_temp  \
 -e "discovery.type=single-node" \
 -e "ES_JAVA_OPTS=-Xms5120m -Xmx5120m"  \
--p 9200:9200  -p 9300:9300  elasticsearch:latest
+-p 9200:9200  -p 9300:9300  elasticsearch:8.12.2
 # copy data from temp elasticsearch to host
-docker cp -a es_temp:/usr/share/elasticsearch/config /root/project/es_mnt
-docker cp -a es_temp:/usr/share/elasticsearch/data /root/project/es_mnt
-docker cp -a es_temp:/usr/share/elasticsearch/plugins /root/project/es_mnt
-docker cp -a es_temp:/usr/share/elasticsearch/logs /root/project/es_mnt
+docker cp -a es_temp:/usr/share/elasticsearch/config $WORK_DIR/es_mnt
+docker cp -a es_temp:/usr/share/elasticsearch/data $WORK_DIR/es_mnt
+docker cp -a es_temp:/usr/share/elasticsearch/plugins $WORK_DIR/es_mnt
+docker cp -a es_temp:/usr/share/elasticsearch/logs $WORK_DIR/es_mnt
 # change the owner of the directory
-chmod -R 777 /root/project/es_mnt
+chmod -R 777 $WORK_DIR/es_mnt
+# change elastic search configuration
+sed -i 's/xpack.security.enabled: true/xpack.security.enabled: false/' $WORK_DIR/es_mnt/config/elasticsearch.yml
 # stop and remove temp elasticsearch
 docker rm -f  es_temp
 # start elasticsearch
-docker run -d --name es -p 9210:9200 -p 9310:9300 -e "discovery.type=single-node" -e "ES_JAVA_OPTS=-Xms5120m -Xmx5120m" -v /root/project/es_mnt/config:/usr/share/elasticsearch/config -v /root/project/es_mnt/data:/usr/share/elasticsearch/data -v /root/project/es_mnt/plugins:/usr/share/elasticsearch/plugins -v /root/project/es_mnt/logs:/usr/share/elasticsearch/logs --network es-net --restart=always elasticsearch:latest
+docker run -d --name es -p 9200:9200 -p 9300:9300 \
+-e "discovery.type=single-node" \
+-e "ES_JAVA_OPTS=-Xms5120m -Xmx5120m" \
+-v "$WORK_DIR/es_mnt/config:/usr/share/elasticsearch/config" \
+-v "$WORK_DIR/es_mnt/data:/usr/share/elasticsearch/data" \
+-v "$WORK_DIR/es_mnt/plugins:/usr/share/elasticsearch/plugins" \
+-v "$WORK_DIR/es_mnt/logs:/usr/share/elasticsearch/logs" \
+--network es-net --restart=always elasticsearch:8.12.2
+
+echo "
+**************************************************
+   Step 4: Kibana for ElasticSearch
+**************************************************
+"
+docker pull kibana:8.12.2
+
+docker run -d --name kibana -p 5601:5601 \
+-e "ELASTICSEARCH_HOSTS=http://es:9200" \
+--network es-net kibana:8.12.2
