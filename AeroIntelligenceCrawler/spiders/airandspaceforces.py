@@ -17,9 +17,9 @@ from AeroIntelligenceCrawler.items import ArticleItem
 class AirandspaceforcesSpider(scrapy.Spider):
     name = "airandspaceforces"
     allowed_domains = ["airandspaceforces.com"]
-    start_urls = ["https://airandspaceforces.com/category/air/"]
+    start_urls = ["https://airandspaceforces.com/news/"]
     data_path = "./AeroIntelligenceCrawler/data/"
-    day_range = 7
+    day_range = 1
 
     def __init__(self):
         service = Service(ChromeDriverManager().install())
@@ -63,7 +63,7 @@ class AirandspaceforcesSpider(scrapy.Spider):
                     yield scrapy.Request(news_url, callback=self.parse_article)
                 else:
                     break
-
+    # 提取标签内文本时间
     def get_news_date(self, news_text: str) -> Any:
         news_text = news_text.replace("COMMENTARY", "").strip()
         match = re.search(r"\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+\d{4}\b", news_text)
@@ -71,6 +71,7 @@ class AirandspaceforcesSpider(scrapy.Spider):
             return None
         return datetime.datetime.strptime(match.group(0), "%B %d, %Y")
 
+    # 处理每条新闻链接
     def parse_article(self, response):
         article = Article(response.url)
         article.download()

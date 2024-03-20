@@ -113,6 +113,14 @@ docker run -d --name es -p 9200:9200 -p 9300:9300 \
 -v "$WORK_DIR/es_mnt/logs:/usr/share/elasticsearch/logs" \
 --network es-net --restart=always elasticsearch:8.12.2
 
+# enter the es container and install analyzer-ik
+docker exec -it es /bin/bash
+cd /usr/share/elasticsearch/bin
+elasticsearch-plugin install analysis-smartcn
+echo y | elasticsearch-plugin install https://github.com/infinilabs/analysis-ik/releases/download/v8.12.2/elasticsearch-analysis-ik-8.12.2.zip
+exit
+docker restart es
+
 echo "
 **************************************************
    Step 4: Kibana for ElasticSearch
@@ -130,4 +138,4 @@ sed -i 's/http:\/\/elasticsearch:9200/http:\/\/es:9200/g' $WORK_DIR/kibana/kiban
 
 docker run -d --name kibana -p 5601:5601 \
 -v $WORK_DIR/kibana/kibana.yml:/usr/share/kibana/config/kibana.yml \
---network es-net --restart always kibana:8.12.2
+--network es-net --restart=always kibana:8.12.2

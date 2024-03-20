@@ -1,115 +1,160 @@
 PUT /article
 {
-    "mappings":{
-      "properties" : {
-        // 新闻URL
-        "url" : {
-          "type" : "keyword"
+  "mappings": {
+    "properties": {
+      "url": {
+        "type": "keyword"
+      },
+      "source": {
+        "type": "keyword"
+      },
+      "publish_date": {
+        "type": "date",
+        "format": "strict_date_optional_time||epoch_millis"
+      },
+      "title_en": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
         },
-        // 新闻来源
-        "source" : {
-          "type" : "keyword"
+        "analyzer": "ik_max_word",
+        "search_analyzer": "ik_smart"
+      },
+      "title_cn": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
         },
-        // 新闻发布时间
-        "publish_date" : {
-          "type" : "date",
-          "format" : "epoch_second"
-        },
-        // 新闻标题英文
-        "title_en" : {
-          "type" : "text",
-          "fields" : {
-            "keyword" : {
-              "type" : "keyword",
-              "ignore_above" : 256
-            }
-          },
-          "analyzer" : "ik_max_word",
-          "search_analyzer" : "ik_smart"
-        },
-        // 新闻标题中文
-        "title_cn" : {
-          "type" : "text",
-          "fields" : {
-            "keyword" : {
-              "type" : "keyword",
-              "ignore_above" : 256
-            }
-          },
-          "analyzer" : "ik_max_word",
-          "search_analyzer" : "ik_smart"
-        },
-        // 新闻主题文本内容（里面记得给图片和表格留占位符）
-        "content_en" : {
-          "type" : "text",
-          "analyzer" : "ik_max_word",
-          "search_analyzer" : "ik_smart"
-        },
-        // 新闻主题文本内容（里面记得给图片和表格留占位符）
-        "content_cn" : {
-          "type" : "text",
-          "analyzer" : "ik_max_word",
-          "search_analyzer" : "ik_smart"
-        },
-        // 图片
-        "images": {
+        "analyzer": "ik_max_word",
+        "search_analyzer": "ik_smart"
+      },
+      "content_en": {
+        "type": "text",
+        "analyzer": "ik_max_word",
+        "search_analyzer": "ik_smart"
+      },
+      "content_cn": {
+        "type": "text",
+        "analyzer": "ik_max_word",
+        "search_analyzer": "ik_smart"
+      },
+      "summary": {
+        "type": "text",
+        "analyzer": "ik_max_word",
+        "search_analyzer": "ik_smart"
+      },
+      "images": {
         "type": "nested",
         "properties": {
-          "image_placeholder": { "type": "keyword" },
-          "image_url": { "type": "keyword" },
-          "image_description": { "type": "text" }
+          "image_placeholder": {
+            "type": "keyword"
+          },
+          "image_path": {
+            "type": "keyword"
+          },
+          "image_description_en": {
+            "type": "text",
+            "analyzer": "ik_max_word",
+            "search_analyzer": "ik_smart"
+          },
+          "image_description_cn": {
+            "type": "text",
+            "analyzer": "ik_max_word",
+            "search_analyzer": "ik_smart"
+          }
         }
       },
       "tables": {
         "type": "nested",
         "properties": {
-          "table_placeholder": { "type": "keyword" },
+          "table_placeholder": {
+            "type": "keyword"
+          },
           "table_content": {
             "type": "object",
-            "enabled": false  // 如果表格内容不需要被索引，可以设置为false
+            "enabled": false
           },
-          "table_description": { "type": "text" }
+          "table_description_en": {
+            "type": "text",
+            "analyzer": "ik_max_word",
+            "search_analyzer": "ik_smart"
+          },
+          "table_description_cn": {
+            "type": "text",
+            "analyzer": "ik_max_word",
+            "search_analyzer": "ik_smart"
+          }
         }
       },
       "tags": {
         "type": "keyword"
       },
-        "read_num" : {
-          "type" : "integer"
-        },
+      "read_num": {
+        "type": "integer"
       }
     }
   }
+}
 
 
+PUT /article/_doc/1
 {
-  "title": "环保新举措：城市绿化的重要性",
-  "content": "近日，市政府宣布了一系列环保新举措，旨在提高城市绿化水平。专家指出，城市绿化对提升城市生态系统具有重要意义。{{image1}}这些措施包括种植更多的树木和创建新的公园区域。{{image2}}下表展示了这些新举措的主要内容和预期效果。{{table1}}",
-  "publish_date": "2024-03-20T08:00:00Z",
-  "tags": ["环境", "可持续发展"],
+  "url": "http://example.com/news/article-5678",
+  "source": "Global News Network",
+  "publish_date": "2024-03-22T10:00:00Z",
+  "title_en": "Breakthrough in Solar Energy Efficiency",
+  "title_cn": "太阳能效率的重大突破",
+  "content_en": "A major breakthrough in solar energy efficiency has been achieved. {{image1}} This new technology could double the efficiency of solar panels. {{table1}}",
+  "content_cn": "太阳能效率取得了重大突破。{{image1}} 这项新技术可能使太阳能板的效率翻倍。{{table1}}",
+  "summary": "太阳能板效率提升的最新技术。",
   "images": [
     {
       "image_placeholder": "{{image1}}",
-      "image_url": "http://example.com/environment1.jpg",
-      "image_description": "城市公园绿地示例"
-    },
-    {
-      "image_placeholder": "{{image2}}",
-      "image_url": "http://example.com/environment2.jpg",
-      "image_description": "新种植的树木"
+      "image_path": "/path/to/solar_panel_image.jpg",
+      "image_description_en": "New solar panel technology",
+      "image_description_cn": "新型太阳能板技术"
     }
   ],
   "tables": [
     {
       "table_placeholder": "{{table1}}",
       "table_content": {
-        "header": ["举措", "预期效果"],
+        "header": ["Feature", "Impact"],
         "rows": [
-          ["增加公园面积", "提高空气质量和休闲空间"],
-          ["城市绿化", "增加生物多样性，改善城市景观"]
+          ["Efficiency", "Up to 200% improvement"],
+          ["Cost", "Reduction in production cost by 25%"]
         ]
       },
-      "table_description": "环保新举措摘要"
+      "table_description_en": "Comparison of new and old solar panel technologies",
+      "table_description_cn": "新旧太阳能板技术对比"
+    }
+  ],
+  "tags": ["太阳能", "技术"],
+  "read_num": 3200
+}
+
+GET /article/_search
+{
+  "size": 10,
+  "query": {
+    "range": {
+      "publish_date": {
+        "gte": "now-1d/d",
+        "lte": "now/d"
+      }
+    }
+  },
+  "sort": [
+    {
+      "publish_date": {
+        "order": "desc"
+      }
     }
   ]
 }
