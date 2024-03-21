@@ -6,7 +6,8 @@
 
 # useful for handling different item types with a single interface
 from itemadapter import ItemAdapter
-from .models.es_types import Article
+from .items import ArticleItem
+from elasticsearch_dsl import connections
 
 
 class AerointelligencecrawlerPipeline:
@@ -15,8 +16,12 @@ class AerointelligencecrawlerPipeline:
         return item
 
 class ElasticsearchPipeline(object):
+    def open_spider(self, spider):
+        self.client = connections.create_connection(hosts=["http://localhost:9200"])
+
+    def close_spider(self, spider):
+        pass
     #将数据写入到es中
     def process_item(self,item,spider):
-        if isinstance(item, Article):
-            item.save_to_es()   
+        self.client.index(index="article", body=dict(item))
         return item

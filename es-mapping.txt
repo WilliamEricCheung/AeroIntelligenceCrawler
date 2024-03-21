@@ -107,7 +107,7 @@ PUT /article/_doc/1
 {
   "url": "http://example.com/news/article-5678",
   "source": "Global News Network",
-  "publish_date": "2024-03-22T10:00:00Z",
+  "publish_date": "2024-03-20T10:00:00Z",
   "title_en": "Breakthrough in Solar Energy Efficiency",
   "title_cn": "太阳能效率的重大突破",
   "content_en": "A major breakthrough in solar energy efficiency has been achieved. {{image1}} This new technology could double the efficiency of solar panels. {{table1}}",
@@ -116,7 +116,7 @@ PUT /article/_doc/1
   "images": [
     {
       "image_placeholder": "{{image1}}",
-      "image_path": "/path/to/solar_panel_image.jpg",
+      "image_path": "~/Project/NewsImage/solar_panel_image.jpg",
       "image_description_en": "New solar panel technology",
       "image_description_cn": "新型太阳能板技术"
     }

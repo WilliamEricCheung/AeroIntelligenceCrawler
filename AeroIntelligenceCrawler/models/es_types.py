@@ -1,29 +1,45 @@
-from elasticsearch_dsl import Document, Date, Completion, Keyword, Text
+from elasticsearch_dsl import Document, Date, Nested, Keyword, Text, Integer
 from elasticsearch_dsl.connections import connections
 from datetime import datetime
+from elasticsearch_dsl.analysis import analyzer
 
 connections.create_connection(hosts="https://localhost:9210")
 
+# 定义分析器
+ik_analyzer = analyzer('ik_max_word')
+ik_smart_analyzer = analyzer('ik_smart')
+
+class Image(Document):
+    image_placeholder = Keyword()
+    image_path = Keyword()
+    image_description_en = Text(analyzer=ik_analyzer, search_analyzer=ik_smart_analyzer)
+    image_description_cn = Text(analyzer=ik_analyzer, search_analyzer=ik_smart_analyzer)
+
+class Table(Document):
+    table_placeholder = Keyword()
+    table_content = Object(enabled=False)
+    table_description_en = Text(analyzer=ik_analyzer, search_analyzer=ik_smart_analyzer)
+    table_description_cn = Text(analyzer=ik_analyzer, search_analyzer=ik_smart_analyzer)
 
 class Article(Document):
-    title_en = Text(analyzer='snowball', fields={'raw': Keyword()})
-    text_en = Text(analyzer='snowball')
-    publish_date = Date()
     url = Keyword()
-    published_from = Keyword()
-    insert_at = Date()
-
-    # suggest = Completion(analyzer="ik_smart", filter=["lowercase"])
-    # title = Text(analyzer="ik_max_word")
-    # front_image_url = Keyword()
-    # front_image_path = Keyword()
+    source = Keyword()
+    publish_date = Date()
+    title_en = Text(fields={'keyword': Keyword(ignore_above=256)}, analyzer=ik_analyzer, search_analyzer=ik_smart_analyzer)
+    title_cn = Text(fields={'keyword': Keyword(ignore_above=256)}, analyzer=ik_analyzer, search_analyzer=ik_smart_analyzer)
+    content_en = Text(analyzer=ik_analyzer, search_analyzer=ik_smart_analyzer)
+    content_cn = Text(analyzer=ik_analyzer, search_analyzer=ik_smart_analyzer)
+    summary = Text(analyzer=ik_analyzer, search_analyzer=ik_smart_analyzer)
+    images = Nested(Image)
+    tables = Nested(Table)
+    tags = Keyword()
+    read_num = Integer()
 
     class Index:
-        name = "article"
+        name = 'article'
 
     def save(self, **kwargs):
         return super(Article, self).save(**kwargs)
-
 
 if __name__ == "__main__":
     Article.init()

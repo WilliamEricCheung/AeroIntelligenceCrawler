@@ -24,7 +24,7 @@ class AirandspaceforcesSpider(scrapy.Spider):
     def __init__(self):
         service = Service(ChromeDriverManager().install())
         options = webdriver.ChromeOptions()
-        # options.add_argument("--headless")
+        options.add_argument("--headless")
         self.driver = webdriver.Chrome(service=service, options=options)
 
     def parse(self, response):
@@ -73,14 +73,14 @@ class AirandspaceforcesSpider(scrapy.Spider):
 
     # 处理每条新闻链接
     def parse_article(self, response):
-        article = Article(response.url)
-        article.download()
-        article.parse()
-        yield ArticleItem(title_en=article.title, text_en=article.text, publish_date=article.publish_date)
+        # article = Article(response.url)
+        # article.download()
+        # article.parse()
+        yield ArticleItem(url=response.url, title_en="title_en", content_en="text_en", publish_date=datetime.datetime.now())
         yield {
-            'title': article.title,
-            'text': article.text,
-            'date': article.publish_date
+            'title': "title_en",
+            'text': "text_en",
+            'date': datetime.datetime.now()
         }
 
     def closed(self, reason):
