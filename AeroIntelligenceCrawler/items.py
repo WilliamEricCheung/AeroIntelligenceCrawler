@@ -22,3 +22,6 @@ class ArticleItem(scrapy.Item):
     tables = scrapy.Field()
     tags = scrapy.Field()
     read_num = scrapy.Field()
+    homepage_image = scrapy.Field()
+    homepage_image_description_en = scrapy.Field()
+    homepage_image_description_cn = scrapy.Field()

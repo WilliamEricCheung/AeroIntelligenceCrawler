@@ -97,6 +97,19 @@ PUT /article
       },
       "read_num": {
         "type": "integer"
+      },
+       "homepage_image": {
+        "type": "keyword"
+      },
+      "homepage_image_description_en": {
+        "type": "text",
+        "analyzer": "ik_max_word",
+        "search_analyzer": "ik_smart"
+      },
+      "homepage_image_description_cn": {
+        "type": "text",
+        "analyzer": "ik_max_word",
+        "search_analyzer": "ik_smart"
       }
     }
   }
@@ -136,7 +149,10 @@ PUT /article/_doc/1
     }
   ],
   "tags": ["太阳能", "技术"],
-  "read_num": 3200
+  "read_num": 3200,
+  "homepage_image": "http://example.com/homepage_image.jpg",
+  "homepage_image_description_en": "This is a description of the homepage image in English.",
+  "homepage_image_description_cn": "这是首页图片的描述。"
 }
 
 GET /article/_search

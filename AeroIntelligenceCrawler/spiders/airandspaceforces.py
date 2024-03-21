@@ -11,6 +11,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 import os
 import re
 import datetime
+import pytz
 
 from AeroIntelligenceCrawler.items import ArticleItem
 
@@ -73,15 +74,16 @@ class AirandspaceforcesSpider(scrapy.Spider):
 
     # 处理每条新闻链接
     def parse_article(self, response):
-        # article = Article(response.url)
-        # article.download()
-        # article.parse()
-        yield ArticleItem(url=response.url, title_en="title_en", content_en="text_en", publish_date=datetime.datetime.now())
-        yield {
-            'title': "title_en",
-            'text': "text_en",
-            'date': datetime.datetime.now()
-        }
+        self.driver.get(response.url)
+        # TODO 处理每个网页的新闻内容
+
+        # 存储到ElasticSearch中
+        yield ArticleItem(url=response.url, title_en="title_en", content_en="text_en", publish_date=datetime.datetime.now(pytz.utc))
+        # yield {
+        #     'title': "title_en",
+        #     'text': "text_en",
+        #     'date': datetime.datetime.now()
+        # }
 
     def closed(self, reason):
         self.driver.close()
