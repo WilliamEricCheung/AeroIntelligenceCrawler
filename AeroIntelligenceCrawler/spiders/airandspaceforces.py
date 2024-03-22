@@ -16,6 +16,7 @@ from AeroIntelligenceCrawler.items import ArticleItem
 
 class AirandspaceforcesSpider(scrapy.Spider):
     name = "airandspaceforces"
+    source = "美国空天部队杂志"
     allowed_domains = ["airandspaceforces.com"]
     start_urls = ["https://airandspaceforces.com/news/"]
     data_path = "./AeroIntelligenceCrawler/data/"
@@ -105,43 +106,46 @@ class AirandspaceforcesSpider(scrapy.Spider):
         homepage_image_description_en = self.driver.find_element(By.XPATH, '//*[@id="content"]/div[2]/div[2]/div[1]').text
         # 获取新闻的标题
         title_en = self.driver.find_element(By.XPATH, '//*[@id="main"]/h1').text
-        # TODO 处理每个网页的新闻内容
-        # body_div = self.driver.find_element(By.XPATH, '//*[@id="main"]/div[2]')
+        # 处理每个网页的新闻内容
+        body_div = self.driver.find_element(By.XPATH, '//*[@id="main"]/div[2]')
 
-        # content = []
-        # images = []
-        # tables = []
-        # image_counter = 1
-        # table_counter = 1
-        # for element in body_div.find_elements(By.XPATH, './*'):
-        #     if element.tag_name == "p":
-        #         content.append(element.text)
-        #     elif element.tag_name == "figure":
-        #         image_placeholder = f"<image{image_counter}>"
-        #         image_path = element.find_element(By.XPATH, './img').get_attribute("src")
-        #         image_description_en = element.find_element(By.XPATH, './figcaption').text if element.find_elements(By.XPATH, './figcaption') else ""
-        #         images.append({
-        #             "image_placeholder": image_placeholder,
-        #             "image_path": image_path,
-        #             "image_description_en": image_description_en
-        #         })
-        #         content.append(image_placeholder)
-        #         image_counter += 1
-        #     elif element.tag_name == "table":
-        #         table_placeholder = f"<table{table_counter}>"
-        #         table_content = element.get_attribute('outerHTML')
-        #         tables.append({
-        #             "table_placeholder": table_placeholder,
-        #             "table_content": table_content
-        #         })
-        #         content.append(table_placeholder)
-        #         table_counter += 1
+        content = []
+        images = []
+        tables = []
+        image_counter = 1
+        table_counter = 1
+        for element in body_div.find_elements(By.XPATH, './*'):
+            if element.tag_name == "p":
+                content.append(element.text + "\n")
+            elif element.tag_name == "figure":
+                image_placeholder = f"<image{image_counter}>"
+                image_path = element.find_element(By.XPATH, './img').get_attribute("src")
+                image_description_en = element.find_element(By.XPATH, './figcaption').text if element.find_elements(By.XPATH, './figcaption') else ""
+                images.append({
+                    "image_placeholder": image_placeholder,
+                    "image_path": image_path,
+                    "image_description_en": image_description_en
+                })
+                content.append(image_placeholder)
+                image_counter += 1
+            elif element.tag_name == "table":
+                table_placeholder = f"<table{table_counter}>"
+                table_content = element.get_attribute('outerHTML')
+                tables.append({
+                    "table_placeholder": table_placeholder,
+                    "table_content": table_content
+                })
+                content.append(table_placeholder)
+                table_counter += 1
 
         # 存储到ElasticSearch中
         yield ArticleItem(url=response.url, 
-                          title_en=title_en, 
-                          content_en="text_en", 
+                          source=self.source,
                           publish_date=news_date,
+                          title_en=title_en, 
+                          content_en=content, 
+                          images=images,
+                          tables=tables,
                           homepage_image=homepage_image_url,
                           homepage_image_description_en=homepage_image_description_en)
         # yield {
