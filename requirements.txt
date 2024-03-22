@@ -1,8 +1,6 @@
 scrapy
 selenium
-newspaper3k
 webdriver_manager
-mongo-connector
 setuptools_rust
 elasticsearch
 elasticsearch_dsl
