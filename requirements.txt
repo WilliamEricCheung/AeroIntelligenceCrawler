@@ -4,3 +4,4 @@ webdriver_manager
 setuptools_rust
 elasticsearch
 elasticsearch_dsl
+pytz

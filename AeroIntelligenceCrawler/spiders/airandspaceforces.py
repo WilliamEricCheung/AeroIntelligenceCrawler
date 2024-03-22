@@ -14,22 +14,23 @@ import pytz
 
 from AeroIntelligenceCrawler.items import ArticleItem
 
+
 class AirandspaceforcesSpider(scrapy.Spider):
     name = "airandspaceforces"
     source = "美国空天部队杂志"
     allowed_domains = ["airandspaceforces.com"]
     start_urls = ["https://airandspaceforces.com/news/"]
     data_path = "./AeroIntelligenceCrawler/data/"
-    day_range = 1
+    day_range = 31
 
     def __init__(self):
         service = Service(ChromeDriverManager().install())
         options = webdriver.ChromeOptions()
-        options.add_argument("--headless")
+        # options.add_argument("--headless")
         self.driver = webdriver.Chrome(service=service, options=options)
 
     def parse(self, response):
-        # 当已经有1天内的新闻链接文件时，直接读取文件中的链接
+        # 当已经有day_range天内的新闻链接文件时，直接读取文件中的链接
         if not os.path.exists(self.data_path):
             os.makedirs(self.data_path)
         current_time = datetime.datetime.now()
@@ -48,27 +49,47 @@ class AirandspaceforcesSpider(scrapy.Spider):
                             for line in file:
                                 news_date_str, news_url = line.split(' ')
                                 news_date = datetime.datetime.strptime(news_date_str, "%Y-%m-%d").date()
-                                yield scrapy.Request(news_url, callback=self.parse_article, meta={'news_date': news_date})
+                                yield scrapy.Request(news_url, callback=self.parse_article,
+                                                     meta={'news_date': news_date})
                         break
-        # 当没有1天内的新闻链接文件时，爬取新的链接
+        # 当没有day_range天内的新闻链接文件时，爬取新的链接
         if not file_exists:
             self.driver.get(response.url)
-            while True:
-                news_list = self.driver.find_elements(By.XPATH, '//article//div//div')
+            need_load_more = True
+            while need_load_more:
+                wait = WebDriverWait(self.driver, 10)
+                news_list = wait.until(EC.presence_of_all_elements_located((By.XPATH, '//article//div//div')))
                 # 判断当前页面中最后一个新闻的时间是否满足day_range内，不满足则不需要再加载更多
                 last_news = news_list[-1]
+                print("***last_news" + last_news.text)
                 last_news_date_obj = self.get_news_date(last_news.text)
-                if last_news_date_obj.date() >= (datetime.datetime.now() - datetime.timedelta(days=self.day_range)).date():
+                if last_news_date_obj is None:
+                    # 这种是最后一个新闻出现了COMMENTARY的情况
                     # 点击加载更多按钮
-                    wait = WebDriverWait(self.driver, 10)
-                    load_more_button = wait.until(EC.element_to_be_clickable((By.XPATH, '//button[@class="alm-load-more-btn more"]')))
+                    wait = WebDriverWait(self.driver, 20)
+                    load_more_button = wait.until(
+                        EC.element_to_be_clickable((By.XPATH, '//button[@class="alm-load-more-btn more"]')))
+                    # 使用 ActionChains 来滚动到按钮的位置
+                    actions = ActionChains(self.driver)
+                    actions.move_to_element(load_more_button).perform()
+                    # 然后再点击按钮
+                    self.driver.execute_script("arguments[0].click();", load_more_button)
+                    continue
+                if last_news_date_obj.date() >= (
+                        datetime.datetime.now() - datetime.timedelta(days=self.day_range)).date():
+                    # 点击加载更多按钮
+                    wait = WebDriverWait(self.driver, 20)
+                    load_more_button = wait.until(
+                        EC.element_to_be_clickable((By.XPATH, '//button[@class="alm-load-more-btn more"]')))
                     # 使用 ActionChains 来滚动到按钮的位置
                     actions = ActionChains(self.driver)
                     actions.move_to_element(load_more_button).perform()
                     # 然后再点击按钮
                     self.driver.execute_script("arguments[0].click();", load_more_button)
                 else:
-                    break
+                    need_load_more = False
+            # 先创建一个新的文件，再写入新的新闻链接
+            news_to_yield = []
             with open(f"{self.data_path}{current_time.strftime('%Y-%m-%d_%H-%M-%S')}.txt", "a") as file:
                 wait = WebDriverWait(self.driver, 10)
                 news_list = wait.until(EC.presence_of_all_elements_located((By.XPATH, '//article//div//div')))
@@ -79,18 +100,43 @@ class AirandspaceforcesSpider(scrapy.Spider):
                     news_date = news_date_obj.date()
                     if news_date >= (current_time - datetime.timedelta(days=self.day_range)).date():
                         news_url = news.find_element(By.XPATH, './/*[self::h2 or self::h3]/a').get_attribute("href")
-                        file.write(str(news_date) + " " + news_url+ "\n")
-                        yield scrapy.Request(news_url, callback=self.parse_article, meta={'news_date': news_date})
+                        file.write(str(news_date) + " " + news_url + "\n")
+                        news_to_yield.append((news_url, news_date))
                     else:
                         break
-                    
+            # 再根据新闻链接爬取新闻内容
+            for news_url, news_date in news_to_yield:
+                yield scrapy.Request(news_url, callback=self.parse_article, meta={'news_date': news_date})
+
     # 提取标签内文本时间
     def get_news_date(self, news_text: str) -> Any:
-        news_text = news_text.replace("COMMENTARY", "").strip()
-        match = re.search(r"\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+\d{4}\b", news_text)
+        # 缩写对照表，用于将缩写月份转换为全称月份
+        month_map = {
+            "Jan.": "January",
+            "Feb.": "February",
+            "March": "March",
+            "April": "April",
+            "May": "May",
+            "June": "June",
+            "July": "July",
+            "Aug.": "August",
+            "Sep.": "September",
+            "Oct.": "October",
+            "Nov.": "November",
+            "Dec.": "December"
+        }
+        match = re.search(r"\b(Jan.|Feb.|March|April|May|June|July|Aug.|Sep.|Oct.|Nov.|Dec.)\s+\d{1,2},\s+\d{4}\b",
+                          news_text)
         if match is None:
             return None
-        return datetime.datetime.strptime(match.group(0), "%B %d, %Y")
+
+        date_str = match.group(0)
+        for key in month_map:
+            if key in date_str:
+                date_str = date_str.replace(key, month_map[key])
+                break
+
+        return datetime.datetime.strptime(date_str, "%B %d, %Y")
 
     # 处理每条新闻链接
     def parse_article(self, response):
@@ -98,12 +144,13 @@ class AirandspaceforcesSpider(scrapy.Spider):
         news_date = response.meta['news_date']
         # 获取新闻的背景图片
         # 等待元素加载
-        wait = WebDriverWait(self.driver, 10)
+        wait = WebDriverWait(self.driver, 20)
         homepage_image = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="content"]/div[2]/div[1]')))
         style = homepage_image.get_attribute("style")
         homepage_image_url = re.search(r'background-image: url\("(.*)"\);', style).group(1)
         # 获取新闻的背景图片描述
-        homepage_image_description_en = self.driver.find_element(By.XPATH, '//*[@id="content"]/div[2]/div[2]/div[1]').text
+        homepage_image_description_en = self.driver.find_element(By.XPATH,
+                                                                 '//*[@id="content"]/div[2]/div[2]/div[1]').text
         # 获取新闻的标题
         title_en = self.driver.find_element(By.XPATH, '//*[@id="main"]/h1').text
         # 处理每个网页的新闻内容
@@ -120,7 +167,8 @@ class AirandspaceforcesSpider(scrapy.Spider):
             elif element.tag_name == "figure":
                 image_placeholder = f"<image{image_counter}>"
                 image_path = element.find_element(By.XPATH, './img').get_attribute("src")
-                image_description_en = element.find_element(By.XPATH, './figcaption').text if element.find_elements(By.XPATH, './figcaption') else ""
+                image_description_en = element.find_element(By.XPATH, './figcaption').text if element.find_elements(
+                    By.XPATH, './figcaption') else ""
                 images.append({
                     "image_placeholder": image_placeholder,
                     "image_path": image_path,
@@ -139,11 +187,11 @@ class AirandspaceforcesSpider(scrapy.Spider):
                 table_counter += 1
 
         # 存储到ElasticSearch中
-        yield ArticleItem(url=response.url, 
+        yield ArticleItem(url=response.url,
                           source=self.source,
                           publish_date=news_date,
-                          title_en=title_en, 
-                          content_en=content, 
+                          title_en=title_en,
+                          content_en=content,
                           images=images,
                           tables=tables,
                           homepage_image=homepage_image_url,
