@@ -10,6 +10,7 @@ class AerointelligencecrawlerItem(scrapy.Item):
     pass
 
 class ArticleItem(scrapy.Item):
+    _id = scrapy.Field()
     url = scrapy.Field()
     source = scrapy.Field()
     publish_date = scrapy.Field()

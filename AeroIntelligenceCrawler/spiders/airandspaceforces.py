@@ -38,14 +38,16 @@ class AirandspaceforcesSpider(scrapy.Spider):
             if os.path.isfile(file_path):
                 modified_time = datetime.datetime.fromtimestamp(os.path.getmtime(file_path))
                 time_difference = current_time - modified_time
-            if time_difference.total_seconds() < 86400 * self.day_range:
+            if time_difference.total_seconds() < 86400 * self.day_range / 2:
                 with open(file_path, "r") as file:
                     if file.read().strip():
                         file_exists = True
                         print("*** File exists, reading from file ***")
                         with open(file_path, "r") as file:
                             for line in file:
-                                yield scrapy.Request(line.strip(), callback=self.parse_article)
+                                news_date_str, news_url = line.split(' ')
+                                news_date = datetime.datetime.strptime(news_date_str, "%Y-%m-%d").date()
+                                yield scrapy.Request(news_url, callback=self.parse_article, meta={'news_date': news_date})
                         break
         # 当没有1天内的新闻链接文件时，爬取新的链接
         if not file_exists:
@@ -73,12 +75,14 @@ class AirandspaceforcesSpider(scrapy.Spider):
                     news_date_obj = self.get_news_date(news.text)
                     if news_date_obj is None:
                         continue
-                    if news_date_obj.date() >= (current_time - datetime.timedelta(days=self.day_range)).date():
+                    news_date = news_date_obj.date()
+                    if news_date >= (current_time - datetime.timedelta(days=self.day_range)).date():
                         news_url = news.find_element(By.XPATH, './/*[self::h2 or self::h3]/a').get_attribute("href")
-                        file.write(news_url + "\n")
-                        yield scrapy.Request(news_url, callback=self.parse_article)
+                        file.write(str(news_date) + " " + news_url+ "\n")
+                        yield scrapy.Request(news_url, callback=self.parse_article, meta={'news_date': news_date})
                     else:
                         break
+                    
     # 提取标签内文本时间
     def get_news_date(self, news_text: str) -> Any:
         news_text = news_text.replace("COMMENTARY", "").strip()
@@ -89,11 +93,57 @@ class AirandspaceforcesSpider(scrapy.Spider):
 
     # 处理每条新闻链接
     def parse_article(self, response):
-        # self.driver.get(response.url)
+        self.driver.get(response.url)
+        news_date = response.meta['news_date']
+        # 获取新闻的背景图片
+        # 等待元素加载
+        wait = WebDriverWait(self.driver, 10)
+        homepage_image = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="content"]/div[2]/div[1]')))
+        style = homepage_image.get_attribute("style")
+        homepage_image_url = re.search(r'background-image: url\("(.*)"\);', style).group(1)
+        # 获取新闻的背景图片描述
+        homepage_image_description_en = self.driver.find_element(By.XPATH, '//*[@id="content"]/div[2]/div[2]/div[1]').text
+        # 获取新闻的标题
+        title_en = self.driver.find_element(By.XPATH, '//*[@id="main"]/h1').text
         # TODO 处理每个网页的新闻内容
+        # body_div = self.driver.find_element(By.XPATH, '//*[@id="main"]/div[2]')
+
+        # content = []
+        # images = []
+        # tables = []
+        # image_counter = 1
+        # table_counter = 1
+        # for element in body_div.find_elements(By.XPATH, './*'):
+        #     if element.tag_name == "p":
+        #         content.append(element.text)
+        #     elif element.tag_name == "figure":
+        #         image_placeholder = f"<image{image_counter}>"
+        #         image_path = element.find_element(By.XPATH, './img').get_attribute("src")
+        #         image_description_en = element.find_element(By.XPATH, './figcaption').text if element.find_elements(By.XPATH, './figcaption') else ""
+        #         images.append({
+        #             "image_placeholder": image_placeholder,
+        #             "image_path": image_path,
+        #             "image_description_en": image_description_en
+        #         })
+        #         content.append(image_placeholder)
+        #         image_counter += 1
+        #     elif element.tag_name == "table":
+        #         table_placeholder = f"<table{table_counter}>"
+        #         table_content = element.get_attribute('outerHTML')
+        #         tables.append({
+        #             "table_placeholder": table_placeholder,
+        #             "table_content": table_content
+        #         })
+        #         content.append(table_placeholder)
+        #         table_counter += 1
 
         # 存储到ElasticSearch中
-        yield ArticleItem(url=response.url, title_en="title_en", content_en="text_en", publish_date=datetime.datetime.now(pytz.utc))
+        yield ArticleItem(url=response.url, 
+                          title_en=title_en, 
+                          content_en="text_en", 
+                          publish_date=news_date,
+                          homepage_image=homepage_image_url,
+                          homepage_image_description_en=homepage_image_description_en)
         # yield {
         #     'title': "title_en",
         #     'text': "text_en",

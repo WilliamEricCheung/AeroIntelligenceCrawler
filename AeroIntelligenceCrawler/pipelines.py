@@ -23,5 +23,5 @@ class ElasticsearchPipeline(object):
         pass
     #将数据写入到es中
     def process_item(self,item,spider):
-        self.client.index(index="article", body=dict(item))
+        self.client.index(index="article", id=item['url'] ,body=dict(item))
         return item
