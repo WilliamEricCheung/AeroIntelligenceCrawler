@@ -20,19 +20,19 @@ class AirandspaceforcesSpider(scrapy.Spider):
     source = "美国空天部队杂志"
     allowed_domains = ["airandspaceforces.com"]
     start_urls = ["https://airandspaceforces.com/news/"]
-    data_path = "./AeroIntelligenceCrawler/data/"
-    day_range = 31
+    data_path = "./AeroIntelligenceCrawler/data/airandspaceforces/"
+    day_range = 50
 
     def __init__(self):
         service = Service(ChromeDriverManager().install())
         options = webdriver.ChromeOptions()
-        # options.add_argument("--headless")
+        options.add_argument("--headless")
         self.driver = webdriver.Chrome(service=service, options=options)
+        if not os.path.exists(self.data_path):
+            os.makedirs(self.data_path)
 
     def parse(self, response):
         # 当已经有day_range天内的新闻链接文件时，直接读取文件中的链接
-        if not os.path.exists(self.data_path):
-            os.makedirs(self.data_path)
         current_time = datetime.datetime.now()
         file_exists = False
         for file_name in os.listdir(self.data_path):
@@ -108,6 +108,66 @@ class AirandspaceforcesSpider(scrapy.Spider):
             for news_url, news_date in news_to_yield:
                 yield scrapy.Request(news_url, callback=self.parse_article, meta={'news_date': news_date})
 
+    # 处理每条新闻链接
+    def parse_article(self, response):
+        news_date = response.meta['news_date']
+        # 获取新闻的背景图片
+        homepage_image = response.css('#content > div:nth-child(2) > div:nth-child(1)').get()
+        style = re.search(r'background-image:url\(\'(.*)\'\)', homepage_image).group(1)
+        homepage_image_url = style
+        # 获取新闻的背景图片描述
+        homepage_image_description_en = response.css('#content > div:nth-child(2) > div:nth-child(2) > div:nth-child(1)::text').get()
+        # 获取新闻的标题
+        title_en = response.css('#main > h1::text').get()
+        # 处理每个网页的新闻内容
+        body_div = response.xpath('//*[@id="main"]/div[2]')
+        print("***body_div" + body_div.get())
+        content = []
+        images = []
+        tables = []
+        image_counter = 1
+        table_counter = 1
+        for element in body_div.css('*'):
+            tag = element.xpath('name()').get()
+            if tag == "p":
+                content.append(element.xpath("string()").get().strip() + "\n")
+            elif tag == "figure":
+                image_placeholder = f"<image{image_counter}>"
+                image_path = element.css('img::attr(src)').get()
+                image_description_en = element.css('figcaption::text').get() or ""
+                images.append({
+                    "image_placeholder": image_placeholder,
+                    "image_path": image_path,
+                    "image_description_en": image_description_en
+                })
+                content.append(image_placeholder)
+                image_counter += 1
+            elif tag == "table":
+                table_placeholder = f"<table{table_counter}>"
+                table_content = element.get()
+                tables.append({
+                    "table_placeholder": table_placeholder,
+                    "table_content": table_content
+                })
+                content.append(table_placeholder)
+                table_counter += 1
+
+        # 存储到ElasticSearch中
+        yield ArticleItem(url=response.url,
+                  source=self.source,
+                  publish_date=news_date,
+                  title_en=title_en,
+                  content_en=content,
+                  images=images,
+                  tables=tables,
+                  homepage_image=homepage_image_url,
+                  homepage_image_description_en=homepage_image_description_en)
+        # yield {
+        #     'title': "title_en",
+        #     'text': "text_en",
+        #     'date': datetime.datetime.now()
+        # }
+
     # 提取标签内文本时间
     def get_news_date(self, news_text: str) -> Any:
         # 缩写对照表，用于将缩写月份转换为全称月份
@@ -136,71 +196,7 @@ class AirandspaceforcesSpider(scrapy.Spider):
                 date_str = date_str.replace(key, month_map[key])
                 break
 
-        return datetime.datetime.strptime(date_str, "%B %d, %Y")
-
-    # 处理每条新闻链接
-    def parse_article(self, response):
-        self.driver.get(response.url)
-        news_date = response.meta['news_date']
-        # 获取新闻的背景图片
-        # 等待元素加载
-        wait = WebDriverWait(self.driver, 20)
-        homepage_image = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="content"]/div[2]/div[1]')))
-        style = homepage_image.get_attribute("style")
-        homepage_image_url = re.search(r'background-image: url\("(.*)"\);', style).group(1)
-        # 获取新闻的背景图片描述
-        homepage_image_description_en = self.driver.find_element(By.XPATH,
-                                                                 '//*[@id="content"]/div[2]/div[2]/div[1]').text
-        # 获取新闻的标题
-        title_en = self.driver.find_element(By.XPATH, '//*[@id="main"]/h1').text
-        # 处理每个网页的新闻内容
-        body_div = self.driver.find_element(By.XPATH, '//*[@id="main"]/div[2]')
-
-        content = []
-        images = []
-        tables = []
-        image_counter = 1
-        table_counter = 1
-        for element in body_div.find_elements(By.XPATH, './*'):
-            if element.tag_name == "p":
-                content.append(element.text + "\n")
-            elif element.tag_name == "figure":
-                image_placeholder = f"<image{image_counter}>"
-                image_path = element.find_element(By.XPATH, './img').get_attribute("src")
-                image_description_en = element.find_element(By.XPATH, './figcaption').text if element.find_elements(
-                    By.XPATH, './figcaption') else ""
-                images.append({
-                    "image_placeholder": image_placeholder,
-                    "image_path": image_path,
-                    "image_description_en": image_description_en
-                })
-                content.append(image_placeholder)
-                image_counter += 1
-            elif element.tag_name == "table":
-                table_placeholder = f"<table{table_counter}>"
-                table_content = element.get_attribute('outerHTML')
-                tables.append({
-                    "table_placeholder": table_placeholder,
-                    "table_content": table_content
-                })
-                content.append(table_placeholder)
-                table_counter += 1
-
-        # 存储到ElasticSearch中
-        yield ArticleItem(url=response.url,
-                          source=self.source,
-                          publish_date=news_date,
-                          title_en=title_en,
-                          content_en=content,
-                          images=images,
-                          tables=tables,
-                          homepage_image=homepage_image_url,
-                          homepage_image_description_en=homepage_image_description_en)
-        # yield {
-        #     'title': "title_en",
-        #     'text': "text_en",
-        #     'date': datetime.datetime.now()
-        # }
+        return datetime.datetime.strptime(date_str, "%B %d, %Y")    
 
     def closed(self, reason):
         self.driver.close()
