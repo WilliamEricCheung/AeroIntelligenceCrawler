@@ -141,18 +141,20 @@ class AirandspaceforcesSpider(scrapy.Spider):
             elif tag == "figure":
                 image_placeholder = f"<image{image_counter}>"
                 image_url = element.css('img::attr(src)').get()
-                image_description_en = element.css('figcaption::text').get() or ""
-                image_name = image_url.split('/')[-1]  # 从URL中获取图片名
-                image_path = os.path.join(self.image_folder, image_name)
-                # 使用Scrapy的Request对象来下载图片
-                yield scrapy.Request(homepage_image_url, callback=self.save_image)
-                images.append({
-                    "image_placeholder": image_placeholder,
-                    "image_path": image_path,
-                    "image_description_en": image_description_en
-                })
-                content.append(image_placeholder)
-                image_counter += 1
+                # 在这里None的情况是因为有些figure标签下是iframe视频标签，直接跳过
+                if image_url is not None:
+                    image_description_en = element.css('figcaption::text').get() or ""
+                    image_name = image_url.split('/')[-1]  # 从URL中获取图片名
+                    image_path = os.path.join(self.image_folder, image_name)
+                    # 使用Scrapy的Request对象来下载图片
+                    yield scrapy.Request(homepage_image_url, callback=self.save_image)
+                    images.append({
+                        "image_placeholder": image_placeholder,
+                        "image_path": image_path,
+                        "image_description_en": image_description_en
+                    })
+                    content.append(image_placeholder)
+                    image_counter += 1
             elif tag == "table":
                 table_placeholder = f"<table{table_counter}>"
                 table_content = element.get()
