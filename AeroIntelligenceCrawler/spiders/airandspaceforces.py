@@ -1,5 +1,6 @@
 from typing import Any
 import scrapy
+from urllib.parse import urlparse
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
@@ -20,7 +21,8 @@ class AirandspaceforcesSpider(scrapy.Spider):
     source = "美国空天部队杂志"
     allowed_domains = ["airandspaceforces.com"]
     start_urls = ["https://airandspaceforces.com/news/"]
-    data_path = "./AeroIntelligenceCrawler/data/airandspaceforces/"
+    data_path = "./AeroIntelligenceCrawler/data/airandspaceforces/"     # 爬取列表存储路径
+    image_folder = "~/Project/NewsImage/"                               # 图片存储路径
     day_range = 50
 
     def __init__(self):
@@ -30,6 +32,8 @@ class AirandspaceforcesSpider(scrapy.Spider):
         self.driver = webdriver.Chrome(service=service, options=options)
         if not os.path.exists(self.data_path):
             os.makedirs(self.data_path)
+        if not os.path.exists(self.image_folder):
+            os.makedirs(self.image_folder)
 
     def parse(self, response):
         # 当已经有day_range天内的新闻链接文件时，直接读取文件中的链接
@@ -61,7 +65,6 @@ class AirandspaceforcesSpider(scrapy.Spider):
                 news_list = wait.until(EC.presence_of_all_elements_located((By.XPATH, '//article//div//div')))
                 # 判断当前页面中最后一个新闻的时间是否满足day_range内，不满足则不需要再加载更多
                 last_news = news_list[-1]
-                print("***last_news" + last_news.text)
                 last_news_date_obj = self.get_news_date(last_news.text)
                 if last_news_date_obj is None:
                     # 这种是最后一个新闻出现了COMMENTARY的情况
@@ -115,13 +118,17 @@ class AirandspaceforcesSpider(scrapy.Spider):
         homepage_image = response.css('#content > div:nth-child(2) > div:nth-child(1)').get()
         style = re.search(r'background-image:url\(\'(.*)\'\)', homepage_image).group(1)
         homepage_image_url = style
+        image_name = homepage_image_url.split('/')[-1]  # 从URL中获取图片名
+        homepage_image_path = os.path.join(self.image_folder, image_name)
+        # 使用Scrapy的Request对象来下载图片
+        yield scrapy.Request(homepage_image_url, callback=self.save_image)
+
         # 获取新闻的背景图片描述
         homepage_image_description_en = response.css('#content > div:nth-child(2) > div:nth-child(2) > div:nth-child(1)::text').get()
         # 获取新闻的标题
         title_en = response.css('#main > h1::text').get()
         # 处理每个网页的新闻内容
         body_div = response.xpath('//*[@id="main"]/div[2]')
-        print("***body_div" + body_div.get())
         content = []
         images = []
         tables = []
@@ -133,8 +140,12 @@ class AirandspaceforcesSpider(scrapy.Spider):
                 content.append(element.xpath("string()").get().strip() + "\n")
             elif tag == "figure":
                 image_placeholder = f"<image{image_counter}>"
-                image_path = element.css('img::attr(src)').get()
+                image_url = element.css('img::attr(src)').get()
                 image_description_en = element.css('figcaption::text').get() or ""
+                image_name = image_url.split('/')[-1]  # 从URL中获取图片名
+                image_path = os.path.join(self.image_folder, image_name)
+                # 使用Scrapy的Request对象来下载图片
+                yield scrapy.Request(homepage_image_url, callback=self.save_image)
                 images.append({
                     "image_placeholder": image_placeholder,
                     "image_path": image_path,
@@ -160,13 +171,22 @@ class AirandspaceforcesSpider(scrapy.Spider):
                   content_en=content,
                   images=images,
                   tables=tables,
-                  homepage_image=homepage_image_url,
+                  homepage_image=homepage_image_path,
                   homepage_image_description_en=homepage_image_description_en)
         # yield {
         #     'title': "title_en",
         #     'text': "text_en",
         #     'date': datetime.datetime.now()
         # }
+
+    def save_image(self, response):
+        # 从URL中获取图片名
+        image_name = os.path.basename(urlparse(response.url).path)
+        image_dir = os.path.expanduser(self.image_folder)
+        os.makedirs(image_dir, exist_ok=True)  # 确保目录存在
+        homepage_image_path = os.path.join(image_dir, image_name)
+        with open(homepage_image_path, 'wb') as f:
+            f.write(response.body)
 
     # 提取标签内文本时间
     def get_news_date(self, news_text: str) -> Any:
