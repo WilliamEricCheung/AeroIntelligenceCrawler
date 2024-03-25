@@ -22,12 +22,12 @@ from AeroIntelligenceCrawler.items import ArticleItem
 class AirandspaceforcesSpider(scrapy.Spider):
     name = "airandspaceforces"
     source = "美国空天部队杂志"
-    allowed_domains = ["airandspaceforces.com"]
+    allowed_domains = ["airandspaceforces.com", "172.16.26.4"]
     start_urls = ["https://airandspaceforces.com/news/"]
     data_path = "./AeroIntelligenceCrawler/data/airandspaceforces/"     # 爬取列表存储路径
     image_folder = os.path.expanduser('~/Project/NewsImage/')           # 图片存储路径
                       
-    day_range = 1
+    day_range = 2
 
     def __init__(self):
         service = Service(ChromeDriverManager().install())
@@ -115,7 +115,6 @@ class AirandspaceforcesSpider(scrapy.Spider):
                 yield scrapy.Request(news_url, callback=self.parse_article, meta={'news_date': news_date})
 
     # 处理每条新闻链接
-    @inlineCallbacks
     def parse_article(self, response):
         news_date = response.meta['news_date']
         # 获取新闻的背景图片
@@ -170,7 +169,7 @@ class AirandspaceforcesSpider(scrapy.Spider):
                 table_counter += 1
 
         # 翻译、总结、Tag归类异步请求大模型后端API操作
-        content_cn = yield self.translate_text(content)
+        self.translate_text(response.url, ''.join(content))
 
         # 存储到ElasticSearch中
         yield ArticleItem(url=response.url,
@@ -178,7 +177,7 @@ class AirandspaceforcesSpider(scrapy.Spider):
                   publish_date=news_date,
                   title_en=title_en,
                   content_en=content,
-                  content_cn=content_cn,
+                #   content_cn=content_cn,
                   images=images,
                   tables=tables,
                   homepage_image=homepage_image_path,
@@ -193,13 +192,23 @@ class AirandspaceforcesSpider(scrapy.Spider):
         with open(image_path, 'wb') as f:
             f.write(response.body)
 
-    @inlineCallbacks
-    def translate_text(self, text):
+
+    def translate_text(self, url, text):
         """异步发送翻译请求"""
-        url = "http://172.16.26.4:6667/translate/"
-        body = json.dumps({"content": text})
-        response = yield JsonRequest(url, method='POST', body=body, headers={'Content-Type': 'application/json'})
-        return json.loads(response.text)
+        llm = "http://172.16.26.4:6667/translate/"
+        body = {'content': text}
+        print("***start translate***")
+        # print(text)
+        yield JsonRequest(llm, data=body, callback=self.handle_translation, meta={'url': url})
+
+    def handle_translation(self, response):
+        result = response.body.decode()
+        content_cn = result.get('result')
+        print("***result: " + result)
+        if content_cn:
+            yield ArticleItem(url=response.meta['url'], content_cn=content_cn)
+    
+
 
     # 提取标签内文本时间
     def get_news_date(self, news_text: str) -> Any:
