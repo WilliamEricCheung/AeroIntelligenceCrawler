@@ -23,7 +23,7 @@ class AirandspaceforcesSpider(scrapy.Spider):
     start_urls = ["https://airandspaceforces.com/news/"]
     data_path = "./AeroIntelligenceCrawler/data/airandspaceforces/"     # 爬取列表存储路径
     image_folder = "~/Project/NewsImage/"                               # 图片存储路径
-    day_range = 50
+    day_range = 1
 
     def __init__(self):
         service = Service(ChromeDriverManager().install())

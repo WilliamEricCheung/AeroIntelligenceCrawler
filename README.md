@@ -43,3 +43,13 @@
 ```shell
 scrapy crawl airandspaceforces
 ```
+
+每12小时爬取的定时任务（cron）设置：
+```shell
+crontab -e
+
+# 例子
+0 */12 * * * cd /path/to/AeroIntelligenceCrawler && python3 main.py
+# 爬虫服务器上
+0 */12 * * * cd ~/Project/AeroIntelligenceCrawler && python3 main.py
+```
