@@ -5,7 +5,6 @@
 ## 功能
 
 - 爬取指定新闻网站的新闻文章
-- 将爬取到的数据存储到MongoDB数据库中
 - 使用ElasticSearch进行全文搜索和索引
 
 ## 安装
@@ -36,6 +35,12 @@
 - `MONGODB_URI`：MongoDB数据库的连接URI
 - `ELASTICSEARCH_HOST`：ElasticSearch的主机地址
 - `ELASTICSEARCH_PORT`：ElasticSearch的端口号
+- `LOG_LEVEL`: 日志级别
+
+## 创建爬虫
+```shell
+scrapy genspider ifeng mil.ifeng.com/shanklist/14-35083-
+```
 
 ## 运行
 
@@ -52,4 +57,7 @@ crontab -e
 0 */12 * * * cd /path/to/AeroIntelligenceCrawler && python3 main.py
 # 爬虫服务器上
 0 */12 * * * cd ~/Project/AeroIntelligenceCrawler && python3 main.py
+
+# Ctrl+X然后按Y然后按Enter来保存并退出编辑器
+# 使用crontab -l命令来查看定时任务
 ```

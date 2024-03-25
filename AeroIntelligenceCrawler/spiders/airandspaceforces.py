@@ -22,7 +22,8 @@ class AirandspaceforcesSpider(scrapy.Spider):
     allowed_domains = ["airandspaceforces.com"]
     start_urls = ["https://airandspaceforces.com/news/"]
     data_path = "./AeroIntelligenceCrawler/data/airandspaceforces/"     # 爬取列表存储路径
-    image_folder = "~/Project/NewsImage/"                               # 图片存储路径
+    image_folder = os.path.expanduser('~/Project/NewsImage/')           # 图片存储路径
+                      
     day_range = 1
 
     def __init__(self):
@@ -32,8 +33,7 @@ class AirandspaceforcesSpider(scrapy.Spider):
         self.driver = webdriver.Chrome(service=service, options=options)
         if not os.path.exists(self.data_path):
             os.makedirs(self.data_path)
-        if not os.path.exists(self.image_folder):
-            os.makedirs(self.image_folder)
+        os.makedirs(self.image_folder, exist_ok=True)     
 
     def parse(self, response):
         # 当已经有day_range天内的新闻链接文件时，直接读取文件中的链接
@@ -147,7 +147,7 @@ class AirandspaceforcesSpider(scrapy.Spider):
                     image_name = image_url.split('/')[-1]  # 从URL中获取图片名
                     image_path = os.path.join(self.image_folder, image_name)
                     # 使用Scrapy的Request对象来下载图片
-                    yield scrapy.Request(homepage_image_url, callback=self.save_image)
+                    yield scrapy.Request(image_url, callback=self.save_image)
                     images.append({
                         "image_placeholder": image_placeholder,
                         "image_path": image_path,
@@ -175,19 +175,14 @@ class AirandspaceforcesSpider(scrapy.Spider):
                   tables=tables,
                   homepage_image=homepage_image_path,
                   homepage_image_description_en=homepage_image_description_en)
-        # yield {
-        #     'title': "title_en",
-        #     'text': "text_en",
-        #     'date': datetime.datetime.now()
-        # }
 
     def save_image(self, response):
         # 从URL中获取图片名
         image_name = os.path.basename(urlparse(response.url).path)
         image_dir = os.path.expanduser(self.image_folder)
         os.makedirs(image_dir, exist_ok=True)  # 确保目录存在
-        homepage_image_path = os.path.join(image_dir, image_name)
-        with open(homepage_image_path, 'wb') as f:
+        image_path = os.path.join(image_dir, image_name)
+        with open(image_path, 'wb') as f:
             f.write(response.body)
 
     # 提取标签内文本时间
