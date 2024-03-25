@@ -1,5 +1,6 @@
 from typing import Any
 import scrapy
+from scrapy.http import JsonRequest
 from urllib.parse import urlparse
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
@@ -12,6 +13,7 @@ import os
 import re
 import datetime
 import pytz
+import json
 
 from AeroIntelligenceCrawler.items import ArticleItem
 
@@ -165,12 +167,16 @@ class AirandspaceforcesSpider(scrapy.Spider):
                 content.append(table_placeholder)
                 table_counter += 1
 
+        # 翻译、总结、Tag归类异步请求大模型后端API操作
+        content_cn = yield self.translate_text(content)
+
         # 存储到ElasticSearch中
         yield ArticleItem(url=response.url,
                   source=self.source,
                   publish_date=news_date,
                   title_en=title_en,
                   content_en=content,
+                  content_cn=content_cn,
                   images=images,
                   tables=tables,
                   homepage_image=homepage_image_path,
@@ -184,6 +190,13 @@ class AirandspaceforcesSpider(scrapy.Spider):
         image_path = os.path.join(image_dir, image_name)
         with open(image_path, 'wb') as f:
             f.write(response.body)
+
+    def translate_text(self, text):
+        """异步发送翻译请求"""
+        url = "http://172.16.26.4:6667/translate/"
+        body = json.dumps({"content": text})
+        response = yield JsonRequest(url, method='POST', body=body, headers={'Content-Type': 'application/json'})
+        return json.loads(response.text)
 
     # 提取标签内文本时间
     def get_news_date(self, news_text: str) -> Any:
