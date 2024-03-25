@@ -1,6 +1,7 @@
 from typing import Any
 import scrapy
 from scrapy.http import JsonRequest
+from twisted.internet.defer import inlineCallbacks
 from urllib.parse import urlparse
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
@@ -114,6 +115,7 @@ class AirandspaceforcesSpider(scrapy.Spider):
                 yield scrapy.Request(news_url, callback=self.parse_article, meta={'news_date': news_date})
 
     # 处理每条新闻链接
+    @inlineCallbacks
     def parse_article(self, response):
         news_date = response.meta['news_date']
         # 获取新闻的背景图片
@@ -191,6 +193,7 @@ class AirandspaceforcesSpider(scrapy.Spider):
         with open(image_path, 'wb') as f:
             f.write(response.body)
 
+    @inlineCallbacks
     def translate_text(self, text):
         """异步发送翻译请求"""
         url = "http://172.16.26.4:6667/translate/"
