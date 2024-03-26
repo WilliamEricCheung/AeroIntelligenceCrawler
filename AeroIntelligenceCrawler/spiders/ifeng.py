@@ -23,7 +23,7 @@ class IfengSpider(scrapy.Spider):
     data_path = "./AeroIntelligenceCrawler/data/ifeng/"         # 爬取列表存储路径
     image_folder = os.path.expanduser('~/Project/NewsImage/')   # 图片存储路径
 
-    day_range = 5
+    day_range = 1
 
     def __init__(self):
         service = Service(ChromeDriverManager().install())
