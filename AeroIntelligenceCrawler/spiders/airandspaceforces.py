@@ -1,7 +1,6 @@
 from typing import Any
 import scrapy
 from scrapy.http import JsonRequest
-from twisted.internet.defer import inlineCallbacks
 from urllib.parse import urlparse
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
@@ -27,7 +26,7 @@ class AirandspaceforcesSpider(scrapy.Spider):
     data_path = "./AeroIntelligenceCrawler/data/airandspaceforces/"     # 爬取列表存储路径
     image_folder = os.path.expanduser('~/Project/NewsImage/')           # 图片存储路径
                       
-    day_range = 2
+    day_range = 3
 
     def __init__(self):
         service = Service(ChromeDriverManager().install())
@@ -169,7 +168,7 @@ class AirandspaceforcesSpider(scrapy.Spider):
                 table_counter += 1
 
         # 翻译、总结、Tag归类异步请求大模型后端API操作
-        self.translate_text(response.url, ''.join(content))
+        yield from self.translate_text(response.url, ''.join(content))
 
         # 存储到ElasticSearch中
         yield ArticleItem(url=response.url,
@@ -199,14 +198,15 @@ class AirandspaceforcesSpider(scrapy.Spider):
         body = {'content': text}
         print("***start translate***")
         # print(text)
-        yield JsonRequest(llm, data=body, callback=self.handle_translation, meta={'url': url})
+        yield JsonRequest(llm, data=body, callback=self.handle_translation, meta={'url': url, 'dont_obey_robotstxt': True})
 
     def handle_translation(self, response):
-        result = response.body.decode()
+        result = json.loads(response.body.decode())
         content_cn = result.get('result')
-        print("***result: " + result)
-        if content_cn:
-            yield ArticleItem(url=response.meta['url'], content_cn=content_cn)
+        print("***result: " + str(result))
+        # if content_cn:
+        #     yield ArticleItem(url=response.meta['url'], content_cn=content_cn)
+        yield ArticleItem(url=response.meta['url'], content_cn=content_cn)
     
 
 
