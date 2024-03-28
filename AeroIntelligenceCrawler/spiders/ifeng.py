@@ -26,7 +26,7 @@ class IfengSpider(scrapy.Spider):
     day_range = 1
 
     def __init__(self):
-        service = Service(ChromeDriverManager().install())
+        service = Service(executable_path="/opt/google/chromedriver-linux64/chromedriver")
         options = webdriver.ChromeOptions()
         options.add_argument("--headless")
         self.driver = webdriver.Chrome(service=service, options=options)
