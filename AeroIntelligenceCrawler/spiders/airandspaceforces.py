@@ -26,12 +26,12 @@ class AirandspaceforcesSpider(scrapy.Spider):
     data_path = "./AeroIntelligenceCrawler/data/airandspaceforces/"     # 爬取列表存储路径
     # 图片这两路径不一致是因为前后端分离，前端访问的是Django的路径，后端访问的是本地路径
     image_folder = os.path.expanduser('~/Project/AeroIntelligenceDjango/AeroIntelligenceDjango/image/') # 图片存储路径
-    image_path = "127.0.0.1:8000/image/"                                         # 图片数据库里面放的路径
+    image_path = "image/"                                         # 图片数据库里面放的路径
                       
     day_range = 3
 
     def __init__(self):
-        service = Service(ChromeDriverManager().install())
+        service = Service(executable_path="/opt/google/chromedriver-linux64/chromedriver")
         options = webdriver.ChromeOptions()
         options.add_argument("--headless")
         self.driver = webdriver.Chrome(service=service, options=options)

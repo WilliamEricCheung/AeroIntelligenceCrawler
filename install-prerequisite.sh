@@ -46,7 +46,7 @@ sudo systemctl restart docker
 # install browswer driver (chrome for ubuntu)
 echo "
 ****************************
-   Step 2: Install Chrome
+   Step 2: Install Chrome and driver
 ****************************
 "
 if grep -q -i "debian" /etc/os-release; then
@@ -70,6 +70,10 @@ else
     echo "Unsupported operating system."
 fi
 
+# https://googlechromelabs.github.io/chrome-for-testing/#stable
+
+sudo apt install unzip
+sudo unzip ~/Project/AeroIntelligenceCrawler/chromedriver-linux64.zip -d /opt/google
 echo "
 **************************************************
    Step 3: Install Python and Related Dependencies
