@@ -24,7 +24,9 @@ class AirandspaceforcesSpider(scrapy.Spider):
     allowed_domains = ["airandspaceforces.com", "172.16.26.4"]
     start_urls = ["https://airandspaceforces.com/news/"]
     data_path = "./AeroIntelligenceCrawler/data/airandspaceforces/"     # 爬取列表存储路径
-    image_folder = os.path.expanduser('~/Project/NewsImage/')           # 图片存储路径
+    # 图片这两路径不一致是因为前后端分离，前端访问的是Django的路径，后端访问的是本地路径
+    image_folder = os.path.expanduser('~/Project/AeroIntelligenceDjango/AeroIntelligenceDjango/image/') # 图片存储路径
+    image_path = "127.0.0.1:8000/image/"                                         # 图片数据库里面放的路径
                       
     day_range = 3
 
@@ -121,7 +123,7 @@ class AirandspaceforcesSpider(scrapy.Spider):
         style = re.search(r'background-image:url\(\'(.*)\'\)', homepage_image).group(1)
         homepage_image_url = style
         image_name = homepage_image_url.split('/')[-1]  # 从URL中获取图片名
-        homepage_image_path = os.path.join(self.image_folder, image_name)
+        homepage_image_path = os.path.join(self.image_path, image_name)
         # 使用Scrapy的Request对象来下载图片
         yield scrapy.Request(homepage_image_url, callback=self.save_image)
 
@@ -130,7 +132,7 @@ class AirandspaceforcesSpider(scrapy.Spider):
         # 获取新闻的标题
         title_en = response.css('#main > h1::text').get()
         # 处理每个网页的新闻内容
-        body_div = response.xpath('//*[@id="main"]/div[2]')
+        body_div = response.xpath('//*[@id="main"]/div[@class="post-body"]')
         content = []
         images = []
         tables = []
@@ -147,7 +149,7 @@ class AirandspaceforcesSpider(scrapy.Spider):
                 if image_url is not None:
                     image_description_en = element.css('figcaption::text').get() or ""
                     image_name = image_url.split('/')[-1]  # 从URL中获取图片名
-                    image_path = os.path.join(self.image_folder, image_name)
+                    image_path = os.path.join(self.image_path, image_name)
                     # 使用Scrapy的Request对象来下载图片
                     yield scrapy.Request(image_url, callback=self.save_image)
                     images.append({
@@ -166,9 +168,6 @@ class AirandspaceforcesSpider(scrapy.Spider):
                 })
                 content.append(table_placeholder)
                 table_counter += 1
-
-        # 翻译、总结、Tag归类异步请求大模型后端API操作
-        yield from self.translate_text(response.url, ''.join(content))
 
         # 存储到ElasticSearch中
         yield ArticleItem(url=response.url,
@@ -190,25 +189,6 @@ class AirandspaceforcesSpider(scrapy.Spider):
         image_path = os.path.join(image_dir, image_name)
         with open(image_path, 'wb') as f:
             f.write(response.body)
-
-
-    def translate_text(self, url, text):
-        """异步发送翻译请求"""
-        llm = "http://172.16.26.4:6667/translate/"
-        body = {'content': text}
-        print("***start translate***")
-        # print(text)
-        yield JsonRequest(llm, data=body, callback=self.handle_translation, meta={'url': url, 'dont_obey_robotstxt': True})
-
-    def handle_translation(self, response):
-        result = json.loads(response.body.decode())
-        content_cn = result.get('result')
-        print("***result: " + str(result))
-        # if content_cn:
-        #     yield ArticleItem(url=response.meta['url'], content_cn=content_cn)
-        yield ArticleItem(url=response.meta['url'], content_cn=content_cn)
-    
-
 
     # 提取标签内文本时间
     def get_news_date(self, news_text: str) -> Any:
