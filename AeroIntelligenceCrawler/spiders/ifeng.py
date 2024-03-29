@@ -23,7 +23,8 @@ class IfengSpider(scrapy.Spider):
     data_path = "./AeroIntelligenceCrawler/data/ifeng/"         # 爬取列表存储路径
     image_folder = os.path.expanduser('~/Project/NewsImage/')   # 图片存储路径
 
-    day_range = 1
+    # 凤凰网只显示14天内的新闻，所以最多只需爬取14天内的新闻
+    day_range = 14
 
     def __init__(self):
         service = Service(executable_path="/opt/google/chromedriver-linux64/chromedriver")
@@ -160,7 +161,8 @@ class IfengSpider(scrapy.Spider):
         match = re.search(r"\b\d{2}-\d{2} \d{2}:\d{2}\b", news_text)
         if match is not None:
             date_str = match.group(0)
-            return datetime.datetime.strptime(date_str, "%m-%d %H:%M")
+            current_year = datetime.datetime.now().year
+            return datetime.datetime.strptime(f"{current_year}-{date_str}", "%Y-%m-%d %H:%M")
 
         # 匹配 "今天 10:53" 这种格式
         match = re.search(r"今天 \d{2}:\d{2}", news_text)

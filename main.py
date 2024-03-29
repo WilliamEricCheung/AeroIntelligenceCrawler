@@ -5,8 +5,8 @@ from scrapy.utils.project import get_project_settings
 process = CrawlerProcess(get_project_settings())
  
 # 添加需要执行的爬虫
-process.crawl('airandspaceforces')
 process.crawl('ifeng')
+process.crawl('airandspaceforces')
  
 # 执行
 process.start()
