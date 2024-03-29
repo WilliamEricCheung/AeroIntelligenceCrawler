@@ -68,6 +68,7 @@ class SinaSpider(scrapy.Spider):
                 if last_news_date_obj.date() >= (
                         datetime.datetime.now() - datetime.timedelta(days=self.day_range)).date():
                     # 点击加载更多按钮
+                    # TODO 新浪是"点击回到相关新闻顶部"，不是"点击加载更多"，点了后滚动下去，直到这个div class的文字显示"已经到底啦~""
                     wait = WebDriverWait(self.driver, 20)
                     load_more_button = wait.until(
                         EC.element_to_be_clickable((By.XPATH, '//a[@class="news-stream-basic-more"]')))
