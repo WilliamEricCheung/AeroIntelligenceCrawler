@@ -21,8 +21,9 @@ class IfengSpider(scrapy.Spider):
     allowed_domains = ["mil.ifeng.com", "news.ifeng.com", "x0.ifengimg.com"]
     start_urls = ["https://mil.ifeng.com/shanklist/14-35083-"]
     data_path = "./AeroIntelligenceCrawler/data/ifeng/"         # 爬取列表存储路径
-    image_folder = os.path.expanduser('~/Project/NewsImage/')   # 图片存储路径
-
+    image_folder = os.path.expanduser('~/Project/AeroIntelligenceDjango/AeroIntelligenceDjango/image/') # 图片存储路径
+    image_path = "image/"                                         # 图片数据库里面放的路径
+    
     # 凤凰网只显示14天内的新闻，所以最多只需爬取14天内的新闻
     day_range = 1
 
@@ -119,7 +120,7 @@ class IfengSpider(scrapy.Spider):
                 print("***image_url:  "+image_url)
                 if image_url is not None:
                     image_name = image_url.split('/')[-1]  # 从URL中获取图片名
-                    image_path = os.path.join(self.image_folder, image_name)
+                    image_path = os.path.join(self.image_path, image_name)
                     yield scrapy.Request(image_url, callback=self.save_image)
                     images.append({
                     "image_placeholder": image_placeholder,
