@@ -24,7 +24,7 @@ class IfengSpider(scrapy.Spider):
     image_folder = os.path.expanduser('~/Project/NewsImage/')   # 图片存储路径
 
     # 凤凰网只显示14天内的新闻，所以最多只需爬取14天内的新闻
-    day_range = 14
+    day_range = 1
 
     def __init__(self):
         service = Service(executable_path="/opt/google/chromedriver-linux64/chromedriver")
