@@ -28,7 +28,7 @@ class AirandspaceforcesSpider(scrapy.Spider):
     image_folder = os.path.expanduser('~/Project/AeroIntelligenceDjango/AeroIntelligenceDjango/image/') # 图片存储路径
     image_path = "image/"                                         # 图片数据库里面放的路径
                       
-    day_range = 3
+    day_range = 1
 
     def __init__(self):
         service = Service(executable_path="/opt/google/chromedriver-linux64/chromedriver")

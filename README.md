@@ -56,7 +56,14 @@ crontab -e
 # 例子
 0 */12 * * * cd /path/to/AeroIntelligenceCrawler && python3 main.py
 # 爬虫服务器上
-0 */12 * * * cd ~/Project/AeroIntelligenceCrawler && python3 main.py
+0 */12 * * * cd ~/Project/AeroIntelligenceCrawler && python3 main.py >> ~/Project/AeroIntelligenceCrawler/crawler_logs/$(date +\%Y\%m\%d\%H\%M\%S).log 2>&1
+
+# 测试每秒钟打印到test.txt
+* * * * * cd /mnt/d/Project/AeroIntelligenceCrawler && python3 test.py >> /mnt/d/Project/AeroIntelligenceCrawler/crawler_logs/$(date +\%Y\%m\%d\%H\%M\%S).log 2>&1
+
+sudo chmod 777 test.py
+# 查看cron日志
+grep CRON /var/log/syslog
 
 # Ctrl+X然后按Y然后按Enter来保存并退出编辑器
 # 使用crontab -l命令来查看定时任务
