@@ -17,7 +17,7 @@ from AeroIntelligenceCrawler.items import ArticleItem
 class AirandspaceforcesSpider(scrapy.Spider):
     name = "airandspaceforces"
     source = "美国空天部队杂志"
-    allowed_domains = ["airandspaceforces.com", "172.16.26.4"]
+    allowed_domains = ["airandspaceforces.com"]
     start_urls = ["https://airandspaceforces.com/news/"]
     data_path = "./AeroIntelligenceCrawler/data/airandspaceforces/"     # 爬取列表存储路径
     # 图片这两路径不一致是因为前后端分离，前端访问的是Django的路径，后端访问的是本地路径
