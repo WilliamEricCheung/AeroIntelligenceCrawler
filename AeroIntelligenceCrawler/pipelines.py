@@ -23,7 +23,6 @@ class ElasticsearchPipeline(object):
         pass
     #将数据写入到es中
     def process_item(self,item,spider):
-        # self.client.index(index="article", id=item['url'] ,body=dict(item))
         # 当不存在这个id的文档时，就插入一个新的文档，存在时就更新这个文档
         self.client.update(index="article", id=item['url'], body={"doc": dict(item), "doc_as_upsert": True})
         return item

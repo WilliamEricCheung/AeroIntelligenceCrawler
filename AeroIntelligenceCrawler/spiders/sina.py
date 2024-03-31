@@ -25,13 +25,13 @@ class SinaSpider(scrapy.Spider):
     image_folder = os.path.expanduser('~/Project/AeroIntelligenceDjango/AeroIntelligenceDjango/image/')  # 图片存储路径
     image_path = "image/"  # 图片数据库里面放的路径
 
-    # 新浪军事只显示10天内的新闻，所以最多只需爬取10天内的新闻
+    # 新浪军事只显示10天内或最多100条的新闻，所以最多只需爬取10天内的新闻
     day_range = 10
 
     def __init__(self):
         service = Service(executable_path="/opt/google/chromedriver-linux64/chromedriver")
         options = webdriver.ChromeOptions()
-        # options.add_argument("--headless")
+        options.add_argument("--headless")
         self.driver = webdriver.Chrome(service=service, options=options)
         if not os.path.exists(self.data_path):
             os.makedirs(self.data_path)
@@ -84,10 +84,8 @@ class SinaSpider(scrapy.Spider):
                     if news_date_obj is None:
                         continue
                     news_date = news_date_obj.date()
-                    print("***news_date: ", news_date)
                     if news_date >= (current_time - datetime.timedelta(days=self.day_range)).date():
                         news_url = news.find_element(By.XPATH, './/h3[@class="ty-card-tt"]/a').get_attribute("href")
-                        print("***news_to_yield: ", news_url)
                         news_to_yield.append((news_url, news_date))
                     else:
                         # 如果已经获取了day_range天内的新闻，就不再获取
