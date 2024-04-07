@@ -26,7 +26,7 @@ class SinaSpider(scrapy.Spider):
     image_path = "image/"  # 图片数据库里面放的路径
 
     # 新浪军事只显示10天内或最多100条的新闻，所以最多只需爬取10天内的新闻
-    day_range = 10
+    day_range = 1
 
     def __init__(self):
         service = Service(executable_path="/opt/google/chromedriver-linux64/chromedriver")
