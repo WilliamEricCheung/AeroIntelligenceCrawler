@@ -129,9 +129,9 @@ class SinaSpider(scrapy.Spider):
             elif tag == "div":
                 image_placeholder = f"<image{image_counter}>"
                 image_url = element.css('img::attr(src)').get()
-                if image_url is not None:
+                if image_url is not None and content:
                     image_url = "https:" + image_url
-                    image_name = image_url.split('/')[-1]  # 从URL中获取图片名
+                    image_name = (image_url.split('/')[-1].split('?')[0]) if (image_url.split('/')[-1].split('?')[0]) else image_url.split('/')[-1]  # 从URL中获取图片名
                     image_path = os.path.join(self.image_path, image_name)
                     yield scrapy.Request(image_url, callback=self.save_image)
                     images.append({
