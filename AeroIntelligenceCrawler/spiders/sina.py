@@ -10,6 +10,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 import os
 import re
 import datetime
+import uuid
 
 from AeroIntelligenceCrawler.items import ArticleItem
 from selenium.common.exceptions import TimeoutException
@@ -26,7 +27,7 @@ class SinaSpider(scrapy.Spider):
     image_path = "image/"  # 图片数据库里面放的路径
 
     # 新浪军事只显示10天内或最多100条的新闻，所以最多只需爬取10天内的新闻
-    day_range = 1
+    day_range = 10
 
     def __init__(self):
         service = Service(executable_path="/opt/google/chromedriver-linux64/chromedriver")
@@ -131,9 +132,9 @@ class SinaSpider(scrapy.Spider):
                 image_url = element.css('img::attr(src)').get()
                 if image_url is not None and content:
                     image_url = "https:" + image_url
-                    image_name = (image_url.split('/')[-1].split('?')[0]) if (image_url.split('/')[-1].split('?')[0]) else image_url.split('/')[-1]  # 从URL中获取图片名
+                    image_name = str(uuid.uuid4()) + (image_url.split('/')[-1].split('?')[0]) if (image_url.split('/')[-1].split('?')[0]) else image_url.split('/')[-1]  # 从URL中获取图片名
                     image_path = os.path.join(self.image_path, image_name)
-                    yield scrapy.Request(image_url, callback=self.save_image)
+                    yield scrapy.Request(image_url, callback=self.save_image, meta={'image_name': image_name})
                     images.append({
                         "image_placeholder": image_placeholder,
                         "image_path": image_path
@@ -153,8 +154,9 @@ class SinaSpider(scrapy.Spider):
                           homepage_image=homepage_image_path)
 
     def save_image(self, response):
-        # 从URL中获取图片名
-        image_name = os.path.basename(urlparse(response.url).path)
+        # 从Request.yeild中获取image_name
+        image_name = response.meta['image_name']
+        # image_name = os.path.basename(urlparse(response.url).path)
         image_dir = os.path.expanduser(self.image_folder)
         os.makedirs(image_dir, exist_ok=True)  # 确保目录存在
         image_path = os.path.join(image_dir, image_name)
